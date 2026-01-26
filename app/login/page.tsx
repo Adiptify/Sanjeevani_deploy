@@ -8,6 +8,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [role, setRole] = useState('User')
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
   const router = useRouter()
 
   useEffect(() => {
@@ -17,26 +19,39 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Simple validation and redirect
-    if (email && password) {
-      localStorage.setItem('isLoggedIn', 'true')
-      localStorage.setItem('userEmail', email)
-      
-      // Get or set default role
-      let savedRole = localStorage.getItem('selectedRole')
-      if (!savedRole) {
-        savedRole = 'User'
-        localStorage.setItem('selectedRole', 'User')
+    setIsLoading(true)
+    setError('')
+
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed')
       }
-      
+
+      localStorage.setItem('isLoggedIn', 'true')
+      localStorage.setItem('userEmail', data.user.email)
+      localStorage.setItem('selectedRole', data.user.role === 'Patient' ? 'User' : data.user.role)
+      localStorage.setItem('userName', data.user.name)
+
       // Redirect based on role
-      if (savedRole === 'Doctor') {
+      if (data.user.role === 'Doctor') {
         router.push('/dashboard/doctor')
-      } else if (savedRole === 'NGO') {
+      } else if (data.user.role === 'NGO') {
         router.push('/dashboard/ngo')
       } else {
         router.push('/dashboard/patient')
       }
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -70,6 +85,11 @@ export default function LoginPage() {
 
       {/* Login Form */}
       <div className="max-w-md w-full bg-white rounded-3xl p-8 shadow-2xl">
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border-2 border-red-100 text-red-600 rounded-xl text-sm font-medium animate-fadeIn">
+            {error}
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
@@ -79,12 +99,12 @@ export default function LoginPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"></path>
                 </svg>
               </div>
-              <input 
-                type="email" 
+              <input
+                type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                required 
-                placeholder="you@example.com" 
+                required
+                placeholder="you@example.com"
                 className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-teal-500 focus:outline-none transition-colors duration-300"
               />
             </div>
@@ -98,16 +118,16 @@ export default function LoginPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                 </svg>
               </div>
-              <input 
+              <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required 
-                placeholder="••••••••" 
+                required
+                placeholder="••••••••"
                 className="w-full pl-10 pr-12 py-3 border-2 border-gray-200 rounded-xl focus:border-teal-500 focus:outline-none transition-colors duration-300"
               />
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute inset-y-0 right-0 pr-3 flex items-center"
               >
@@ -127,8 +147,8 @@ export default function LoginPage() {
             <button type="button" className="text-sm font-medium text-teal-600 hover:text-teal-500">Forgot password?</button>
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className="w-full bg-gradient-to-r from-teal-500 to-teal-600 text-white font-semibold py-4 rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
           >
             Sign In
@@ -140,7 +160,7 @@ export default function LoginPage() {
 
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">
-            Don't have an account? 
+            Don't have an account?
             <button onClick={handleSignUp} className="font-semibold text-teal-600 hover:text-teal-500 ml-1">Sign Up</button>
           </p>
         </div>

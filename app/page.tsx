@@ -14,6 +14,39 @@ export default function Home() {
   const [showJourneyModal, setShowJourneyModal] = useState(false)
   const [showAIPreview, setShowAIPreview] = useState(false)
 
+  // Chat States for Preview
+  const [chatMessages, setChatMessages] = useState<any[]>([
+    { sender: 'ai', text: "Hello! I'm the Sanjeevni AI Preview. Ask me anything about health, symptoms, or our services!" }
+  ])
+  const [chatInput, setChatInput] = useState('')
+  const [isTyping, setIsTyping] = useState(false)
+
+  const handleSendMessage = async () => {
+    if (!chatInput.trim()) return
+
+    const userMsg = chatInput
+    setChatInput('')
+    setChatMessages(prev => [...prev, { sender: 'user', text: userMsg }])
+    setIsTyping(true)
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userMsg })
+      })
+
+      if (!response.ok) throw new Error('API failed')
+      const data = await response.json()
+
+      setChatMessages(prev => [...prev, { sender: 'ai', text: data.reply }])
+    } catch (err) {
+      setChatMessages(prev => [...prev, { sender: 'ai', text: "Sorry, I'm having trouble connecting right now. Please try again later." }])
+    } finally {
+      setIsTyping(false)
+    }
+  }
+
   const scrollFeatures = (direction: 'left' | 'right') => {
     if (featuresRef.current) {
       const scrollAmount = 400
@@ -98,7 +131,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white overflow-x-hidden">
-      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
@@ -143,13 +177,13 @@ export default function Home() {
       {/* Journey Selection Modal */}
       {showJourneyModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div 
+          <div
             className="bg-white rounded-3xl p-8 max-w-4xl w-full shadow-2xl relative"
             style={{
               animation: 'fadeInUp 0.4s ease-out'
             }}
           >
-            <button 
+            <button
               onClick={() => setShowJourneyModal(false)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
             >
@@ -157,7 +191,7 @@ export default function Home() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
               </svg>
             </button>
-            
+
             <div className="text-center mb-8">
               <h3 className="text-3xl font-bold text-gray-900 mb-3" style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>
                 Begin Your Health Journey
@@ -278,8 +312,8 @@ export default function Home() {
       {/* AI Preview Panel */}
       {showAIPreview && (
         <div className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm z-50 flex items-end justify-center p-4">
-          <div 
-            className="bg-white rounded-t-3xl p-6 max-w-2xl w-full shadow-2xl"
+          <div
+            className="bg-white rounded-t-3xl p-6 max-w-2xl w-full shadow-2xl flex flex-col"
             style={{
               animation: 'fadeInUp 0.4s ease-out',
               maxHeight: '80vh'
@@ -293,11 +327,11 @@ export default function Home() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900">Sanjeevni AI Assistant</h3>
-                  <p className="text-xs text-gray-500">Your personal health companion</p>
+                  <h3 className="text-lg font-bold text-gray-900">Sanjeevni AI Preview</h3>
+                  <p className="text-xs text-gray-500">Experience our health intelligence</p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setShowAIPreview(false)}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
@@ -307,74 +341,49 @@ export default function Home() {
               </button>
             </div>
 
-            <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
-              {/* AI Welcome Message */}
-              <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-400 to-cyan-600 flex items-center justify-center text-white flex-shrink-0">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                  </svg>
-                </div>
-                <div className="bg-teal-50 rounded-2xl rounded-tl-none p-4 max-w-md">
-                  <p className="text-gray-800 text-sm">
-                    Hello! 👋 I'm your Sanjeevni AI Assistant. I can help you with:
-                  </p>
-                  <ul className="mt-2 space-y-1 text-sm text-gray-700">
-                    <li className="flex items-start gap-2">
-                      <span className="text-teal-600 mt-0.5">•</span>
-                      <span>Health symptom assessment</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-teal-600 mt-0.5">•</span>
-                      <span>Finding the right specialist</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-teal-600 mt-0.5">•</span>
-                      <span>Understanding medical reports</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-teal-600 mt-0.5">•</span>
-                      <span>General health guidance</span>
-                    </li>
-                  </ul>
-                  <p className="mt-3 text-sm text-gray-600 italic">How can I assist you today?</p>
-                </div>
-              </div>
-
-              {/* Quick Action Cards */}
-              <div className="grid grid-cols-2 gap-3 mt-4">
-                <button className="p-3 rounded-xl border-2 border-teal-200 hover:border-teal-500 hover:bg-teal-50 transition-all text-left">
-                  <div className="flex items-center gap-2 mb-1">
-                    <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    <span className="text-xs font-semibold text-gray-900">Symptom Checker</span>
+            <div className="flex-1 overflow-y-auto mb-4 space-y-4 px-2 custom-scrollbar">
+              {chatMessages.map((msg, idx) => (
+                <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} animate-fadeIn`}>
+                  <div className={`max-w-[85%] p-4 rounded-2xl shadow-sm text-sm ${msg.sender === 'user'
+                    ? 'bg-teal-600 text-white rounded-tr-none'
+                    : 'bg-teal-50 text-gray-800 border border-teal-100 rounded-tl-none'
+                    }`}>
+                    {msg.text}
                   </div>
-                  <p className="text-xs text-gray-600">Assess your symptoms</p>
-                </button>
-                <button className="p-3 rounded-xl border-2 border-teal-200 hover:border-teal-500 hover:bg-teal-50 transition-all text-left">
-                  <div className="flex items-center gap-2 mb-1">
-                    <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                    </svg>
-                    <span className="text-xs font-semibold text-gray-900">Find Doctor</span>
+                </div>
+              ))}
+              {isTyping && (
+                <div className="flex justify-start animate-pulse">
+                  <div className="bg-gray-100 text-gray-400 p-3 rounded-2xl rounded-tl-none text-xs italic">
+                    AI is thinking...
                   </div>
-                  <p className="text-xs text-gray-600">Get specialist recommendations</p>
-                </button>
-              </div>
+                </div>
+              )}
             </div>
 
-            <div className="border-t pt-4">
-              <button 
-                onClick={() => {
-                  setShowAIPreview(false)
-                  router.push('/roles')
-                }}
-                className="w-full bg-gradient-to-r from-teal-500 to-cyan-600 text-white py-3 px-6 rounded-xl font-semibold hover:shadow-lg transition-all"
+            <div className="flex gap-2 p-2 bg-gray-50 rounded-2xl border border-gray-100">
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                placeholder="Ask about a symptom or health topic..."
+                className="flex-1 bg-transparent border-none focus:ring-0 text-sm px-2 py-3"
+              />
+              <button
+                onClick={handleSendMessage}
+                disabled={!chatInput.trim() || isTyping}
+                className="bg-teal-600 text-white w-10 h-10 rounded-xl flex items-center justify-center hover:bg-teal-700 transition-colors disabled:opacity-50"
               >
-                Continue to Full Chat
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                </svg>
               </button>
             </div>
+
+            <p className="text-[10px] text-gray-400 text-center mt-4">
+              Preview mode: Sign up to save your chat history and connect with doctors.
+            </p>
           </div>
         </div>
       )}
@@ -401,7 +410,7 @@ export default function Home() {
 
             {/* Enhanced Dual CTAs */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start animate-sequence-3">
-              <button 
+              <button
                 onClick={() => setShowJourneyModal(true)}
                 className="button-elevation bg-gradient-to-r from-teal-500 to-cyan-600 text-white text-lg font-semibold py-4 px-8 rounded-xl shadow-lg inline-flex items-center justify-center group"
               >
@@ -410,7 +419,7 @@ export default function Home() {
                   <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd"></path>
                 </svg>
               </button>
-              <button 
+              <button
                 onClick={() => setShowAIPreview(true)}
                 className="button-elevation text-teal-700 text-lg font-semibold py-4 px-8 rounded-xl border-2 border-teal-300 hover:border-teal-500 inline-flex items-center justify-center group"
                 style={{
@@ -460,7 +469,7 @@ export default function Home() {
 
           {/* Right Side - Enhanced Lottie Animation */}
           <div className="flex items-center justify-center">
-            <div 
+            <div
               className="w-full max-w-2xl rounded-3xl p-8"
               style={{
                 background: 'rgba(255, 255, 255, 0.5)',
@@ -471,11 +480,11 @@ export default function Home() {
                 animation: 'floatAnimation 6s ease-in-out infinite'
               }}
             >
-              <Lottie 
-                animationData={animationData} 
+              <Lottie
+                animationData={animationData}
                 loop={true}
-                style={{ 
-                  width: '100%', 
+                style={{
+                  width: '100%',
                   height: '100%',
                   filter: 'saturate(0.85)'
                 }}
@@ -540,11 +549,10 @@ export default function Home() {
                   const element = document.getElementById(`feature-${index}`);
                   element?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
                 }}
-                className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
-                  index === 0 
-                    ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/30' 
-                    : 'bg-white/60 text-teal-700 hover:bg-teal-50 border border-teal-200/50'
-                }`}
+                className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${index === 0
+                  ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/30'
+                  : 'bg-white/60 text-teal-700 hover:bg-teal-50 border border-teal-200/50'
+                  }`}
               >
                 {feature.title}
               </button>
@@ -552,19 +560,19 @@ export default function Home() {
           </div>
 
           {/* Features showcase with central narrative */}
-          <div 
+          <div
             ref={featuresRef}
             className="flex gap-8 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-8 px-4"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             {features.map((feature, index) => (
-              <div 
+              <div
                 key={index}
                 id={`feature-${index}`}
                 className="group relative snap-center min-w-[380px] transition-all duration-500"
               >
                 {/* Glassmorphism card */}
-                <div 
+                <div
                   className="relative rounded-3xl p-8 backdrop-blur-xl bg-white/70 border border-teal-100/50 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 h-full"
                   style={{
                     background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(224,247,250,0.6) 100%)',
@@ -572,7 +580,7 @@ export default function Home() {
                   }}
                 >
                   {/* Gradient border effect */}
-                  <div 
+                  <div
                     className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
                     style={{
                       background: 'linear-gradient(135deg, rgba(20,184,166,0.2) 0%, rgba(6,182,212,0.2) 100%)',
@@ -585,7 +593,7 @@ export default function Home() {
 
                   {/* Icon with subtle animation */}
                   <div className="relative mb-6">
-                    <div 
+                    <div
                       className="w-20 h-20 rounded-2xl flex items-center justify-center transition-all duration-500 group-hover:scale-110"
                       style={{
                         background: 'linear-gradient(135deg, rgba(20,184,166,0.12) 0%, rgba(178,235,242,0.12) 100%)',
@@ -601,7 +609,7 @@ export default function Home() {
                   </div>
 
                   {/* Title */}
-                  <h3 
+                  <h3
                     className="text-2xl font-bold text-gray-900 mb-3 transition-colors duration-300 group-hover:text-teal-700"
                     style={{ fontFamily: 'Georgia, serif' }}
                   >
@@ -674,11 +682,11 @@ export default function Home() {
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-800 mb-4">About Us</h2>
             <p className="text-gray-600 text-lg max-w-3xl mx-auto">
-              Sanjeevni AI is revolutionizing healthcare accessibility through cutting-edge artificial intelligence 
+              Sanjeevni AI is revolutionizing healthcare accessibility through cutting-edge artificial intelligence
               and seamless digital experiences. Our mission is to make quality healthcare available to everyone, everywhere.
             </p>
           </div>
-          
+
           <div className="grid md:grid-cols-3 gap-8 mt-12">
             <div className="text-center p-6">
               <div className="w-20 h-20 bg-teal-500 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -687,7 +695,7 @@ export default function Home() {
               <h3 className="text-xl font-bold text-gray-800 mb-2">Active Users</h3>
               <p className="text-gray-600">Trusted by thousands of patients</p>
             </div>
-            
+
             <div className="text-center p-6">
               <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-white text-3xl font-bold">500+</span>
@@ -695,7 +703,7 @@ export default function Home() {
               <h3 className="text-xl font-bold text-gray-800 mb-2">Medical Experts</h3>
               <p className="text-gray-600">Qualified doctors ready to help</p>
             </div>
-            
+
             <div className="text-center p-6">
               <div className="w-20 h-20 bg-indigo-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-white text-3xl font-bold">24/7</span>
@@ -714,7 +722,7 @@ export default function Home() {
             <h2 className="text-4xl font-bold text-gray-800 mb-4">What Our Users Say</h2>
             <p className="text-gray-600 text-lg">Real experiences from real people</p>
           </div>
-          
+
           <div className="grid md:grid-cols-3 gap-8">
             {reviews.map((review, index) => (
               <div key={index} className="bg-white rounded-2xl p-8 shadow-xl border-2 border-teal-50">
@@ -727,7 +735,7 @@ export default function Home() {
                     <p className="text-sm text-gray-600">{review.role}</p>
                   </div>
                 </div>
-                
+
                 <div className="flex mb-4">
                   {[...Array(review.rating)].map((_, i) => (
                     <svg key={i} className="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
@@ -735,7 +743,7 @@ export default function Home() {
                     </svg>
                   ))}
                 </div>
-                
+
                 <p className="text-gray-600 italic">&ldquo;{review.comment}&rdquo;</p>
               </div>
             ))}
@@ -750,13 +758,13 @@ export default function Home() {
             <div>
               <div className="flex items-center mb-4">
                 <svg className="w-8 h-8 text-teal-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/>
+                  <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
                 </svg>
                 <h3 className="caveat text-2xl font-bold">Sanjeevni AI</h3>
               </div>
               <p className="text-gray-400 text-sm">Your trusted healthcare companion powered by AI</p>
             </div>
-            
+
             <div>
               <h4 className="font-bold mb-4">Quick Links</h4>
               <ul className="space-y-2 text-gray-400">
@@ -765,7 +773,7 @@ export default function Home() {
                 <li><Link href="/dashboard" className="hover:text-teal-400 transition-colors">Dashboard</Link></li>
               </ul>
             </div>
-            
+
             <div>
               <h4 className="font-bold mb-4">Services</h4>
               <ul className="space-y-2 text-gray-400">
@@ -775,7 +783,7 @@ export default function Home() {
                 <li>Medicine Matrix</li>
               </ul>
             </div>
-            
+
             <div>
               <h4 className="font-bold mb-4">Contact Us</h4>
               <ul className="space-y-2 text-gray-400 text-sm">
@@ -785,7 +793,7 @@ export default function Home() {
               </ul>
             </div>
           </div>
-          
+
           <div className="border-t border-gray-800 pt-8 text-center text-gray-400 text-sm">
             <p>&copy; 2026 Sanjeevni AI. All rights reserved.</p>
           </div>

@@ -42,75 +42,52 @@ export default function AIHealthAssistantPage() {
     scrollToBottom();
   }, [messages]);
 
-  const simulateBotResponse = (userMessage: string) => {
+  const simulateBotResponse = async (userMessage: string) => {
     setIsTyping(true);
-    
-    setTimeout(() => {
-      let botMessage: Message = {
+
+    try {
+      const apiMessages = messages.map(m => ({
+        role: m.sender === 'user' ? 'user' : 'assistant',
+        content: m.text
+      }));
+      apiMessages.push({ role: 'user', content: userMessage });
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: apiMessages,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get AI response');
+      }
+
+      const botMessage: Message = {
         id: Date.now().toString(),
-        text: '',
+        text: data.message.content,
         sender: 'bot',
         timestamp: new Date()
       };
 
-      const lowerMessage = userMessage.toLowerCase();
-
-      // Symptom check responses
-      if (lowerMessage.includes('headache') || lowerMessage.includes('head pain')) {
-        botMessage.text = "I understand you're experiencing headaches. This could be due to various reasons like stress, dehydration, or tension. Let me ask you a few questions:\n\n• How long have you had this headache?\n• Is it a throbbing or constant pain?\n• Do you have any other symptoms like nausea or sensitivity to light?\n\nBased on your symptoms, I can recommend the right specialist for you.";
-        botMessage.quickActions = ['Mild headache', 'Severe headache', 'With other symptoms'];
-      } 
-      else if (lowerMessage.includes('fever') || lowerMessage.includes('temperature')) {
-        botMessage.text = "Fever can indicate an infection or inflammation. To help you better:\n\n• What is your temperature reading?\n• How long have you had the fever?\n• Any other symptoms like cough, sore throat, or body ache?\n\nI can connect you with a General Physician who can diagnose and treat you properly.";
-        botMessage.quickActions = ['Book Doctor', 'Home Remedies', 'Emergency'];
-        botMessage.doctorRecommendation = {
-          name: 'Dr. Michael Chen',
-          specialization: 'General Physician',
-          reason: 'Best suited for fever diagnosis and treatment'
-        };
-      }
-      else if (lowerMessage.includes('chest pain') || lowerMessage.includes('heart')) {
-        botMessage.text = "⚠️ Chest pain requires immediate attention. I recommend:\n\n1. If severe or accompanied by shortness of breath - Call 108 immediately\n2. For mild discomfort - Consult with a Cardiologist\n3. Avoid physical exertion until checked\n\nWould you like me to book an urgent appointment with our Cardiologist?";
-        botMessage.quickActions = ['Emergency Call', 'Book Cardiologist', 'More Info'];
-        botMessage.doctorRecommendation = {
-          name: 'Dr. Sarah Johnson',
-          specialization: 'Cardiologist',
-          reason: 'Immediate cardiac consultation recommended'
-        };
-      }
-      else if (lowerMessage.includes('skin') || lowerMessage.includes('rash') || lowerMessage.includes('acne')) {
-        botMessage.text = "For skin concerns, a Dermatologist can provide the best treatment. Common issues include:\n\n• Acne and breakouts\n• Rashes and allergies\n• Skin infections\n• Pigmentation issues\n\nI can connect you with Dr. Emily Rodriguez, our experienced Dermatologist.";
-        botMessage.quickActions = ['Book Dermatologist', 'Skin Care Tips'];
-        botMessage.doctorRecommendation = {
-          name: 'Dr. Emily Rodriguez',
-          specialization: 'Dermatologist',
-          reason: 'Expert in treating all skin conditions'
-        };
-      }
-      else if (lowerMessage.includes('stress') || lowerMessage.includes('anxiety') || lowerMessage.includes('mental')) {
-        botMessage.text = "I understand mental health is just as important as physical health. It's great that you're reaching out. I can help you with:\n\n• Stress management techniques\n• Breathing exercises\n• Professional counseling referrals\n• Mindfulness resources\n\nWould you like some immediate relaxation techniques or prefer to speak with a mental health professional?";
-        botMessage.quickActions = ['Breathing Exercise', 'Book Counselor', 'Self-Care Tips'];
-      }
-      else if (lowerMessage.includes('find') && lowerMessage.includes('doctor')) {
-        botMessage.text = "I can help you find the right doctor! We have:\n\n• General Physicians - For common health issues\n• Cardiologists - Heart and cardiovascular health\n• Dermatologists - Skin, hair, and nail concerns\n• And many more specialists\n\nWhat type of doctor are you looking for?";
-        botMessage.quickActions = ['General Physician', 'Cardiologist', 'Dermatologist', 'View All'];
-      }
-      else if (lowerMessage.includes('book') || lowerMessage.includes('appointment')) {
-        botMessage.text = "I'd be happy to help you book an appointment! You can:\n\n1. Choose from our available doctors\n2. Select Physical or Virtual consultation\n3. Pick your preferred date and time\n\nWould you like to proceed with booking?";
-        botMessage.quickActions = ['Yes, Book Now', 'View Doctors First'];
-      }
-      else if (lowerMessage.includes('tip') || lowerMessage.includes('health')) {
-        botMessage.text = "Here are some daily health tips for you:\n\n• 💧 Drink 8 glasses of water daily\n• 🥗 Eat a balanced diet with fruits and vegetables\n• 🏃 Exercise for at least 30 minutes\n• 😴 Get 7-8 hours of quality sleep\n• 🧘 Practice stress management\n\nWould you like personalized health recommendations based on your profile?";
-        botMessage.quickActions = ['Get Personalized Tips', 'Nutrition Advice', 'Exercise Plan'];
-      }
-      else {
-        botMessage.text = "I'm here to help! I can assist you with:\n\n• 🩺 Symptom checking\n• 👨‍⚕️ Finding the right doctor\n• 📅 Booking appointments\n• 💊 General health information\n• 🏥 Locating nearby hospitals\n\nPlease tell me what you need help with, or choose from the options below.";
-        botMessage.quickActions = ['Check Symptoms', 'Find Doctor', 'Book Appointment', 'Health Tips'];
-      }
-
       setMessages(prev => [...prev, botMessage]);
+    } catch (error: any) {
+      console.error('Error fetching bot response:', error);
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        text: "I'm sorry, I'm having trouble connecting to my brain right now. Please try again later.",
+        sender: 'bot',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   const handleSend = () => {
@@ -142,7 +119,7 @@ export default function AIHealthAssistantPage() {
       {/* Header */}
       <div className="bg-gradient-to-r from-teal-500 to-cyan-500 px-6 py-6 shadow-lg flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={() => router.back()}
             className="text-white hover:text-gray-100"
           >
@@ -184,12 +161,11 @@ export default function AIHealthAssistantPage() {
                     <span className="text-sm text-gray-600 font-semibold">AI Assistant</span>
                   </div>
                 )}
-                
-                <div className={`${
-                  message.sender === 'user'
+
+                <div className={`${message.sender === 'user'
                     ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-3xl rounded-tr-none'
                     : 'bg-white text-gray-800 rounded-3xl rounded-tl-none shadow-lg'
-                } px-6 py-4`}>
+                  } px-6 py-4`}>
                   <p className="whitespace-pre-line" style={{ fontStyle: message.sender === 'bot' ? 'italic' : 'normal' }}>
                     {message.text}
                   </p>
@@ -247,7 +223,7 @@ export default function AIHealthAssistantPage() {
               </div>
             </div>
           )}
-          
+
           <div ref={messagesEndRef} />
         </div>
       </div>
@@ -276,11 +252,10 @@ export default function AIHealthAssistantPage() {
             <button
               onClick={handleSend}
               disabled={!input.trim()}
-              className={`px-8 py-4 rounded-2xl font-semibold transition-all ${
-                input.trim()
+              className={`px-8 py-4 rounded-2xl font-semibold transition-all ${input.trim()
                   ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white hover:shadow-lg transform hover:scale-105'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
+                }`}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>

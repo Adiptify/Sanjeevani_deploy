@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: sanjeevni-ai
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_VERSION
+        value: 18.17.0
+      - key: MONGODB_URI
+        sync: false
+      - key: OLLAMA_API_KEY
+        sync: false
+      - key: NEXT_PUBLIC_BASE_URL
+        value: https://sanjeevni-ai.onrender.com

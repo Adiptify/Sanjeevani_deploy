@@ -15,6 +15,7 @@ export default function DoctorSignupPage() {
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
+    password: '',
     phone: '',
     medicalLicenseNumber: '',
     medicalCouncilRegistration: '',
@@ -108,7 +109,7 @@ export default function DoctorSignupPage() {
 
   const validateCurrentStep = () => {
     if (currentStep === 1) {
-      if (!formData.fullName || !formData.email || !formData.phone || !formData.medicalLicenseNumber || !formData.medicalCouncilRegistration || !formData.specialization || !formData.medicalDegree || !formData.yearsOfExperience) {
+      if (!formData.fullName || !formData.email || !formData.password || !formData.phone || !formData.medicalLicenseNumber || !formData.medicalCouncilRegistration || !formData.specialization || !formData.medicalDegree || !formData.yearsOfExperience) {
         alert('Please fill in all required fields in Professional Information')
         return false
       }
@@ -153,37 +154,41 @@ export default function DoctorSignupPage() {
     if (!canvas) return
     const signatureBase64 = canvas.toDataURL()
 
-    const submissionData = {
-      role: 'Doctor',
-      ...formData,
-      signatureBase64,
-      status: 'pending',
-      registrationId: `DOC-${Date.now()}`,
-      registrationDate: new Date().toISOString()
-    }
-
     setIsLoading(true)
 
     try {
-      // Save registration data to localStorage
-      const existingRegistrations = localStorage.getItem('doctorRegistrations')
-      const registrations = existingRegistrations ? JSON.parse(existingRegistrations) : []
-      registrations.push(submissionData)
-      localStorage.setItem('doctorRegistrations', JSON.stringify(registrations))
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          role: 'Doctor',
+          ...formData,
+          signatureBase64,
+          registrationId: `DOC-${Date.now()}`,
+          registrationDate: new Date().toISOString()
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Registration failed')
+      }
 
       // Set user session
       localStorage.setItem('isLoggedIn', 'true')
       localStorage.setItem('userEmail', formData.email)
       localStorage.setItem('selectedRole', 'Doctor')
-      
-      alert(`✅ Doctor Registration Submitted Successfully!\n\nRegistration ID: ${submissionData.registrationId}\nName: Dr. ${formData.fullName}\nEmail: ${formData.email}\nStatus: Pending Verification\n\nOur team will review your credentials within 2-3 business days.\n\nRedirecting to your dashboard...`)
-      
+      localStorage.setItem('userName', `Dr. ${formData.fullName}`)
+
+      alert(`✅ Doctor Registration Successful! Redirecting to your dashboard...`)
+
       setTimeout(() => {
         router.push('/dashboard/doctor')
       }, 500)
-      
-    } catch (error) {
-      alert('Error: Registration failed. Please try again.')
+
+    } catch (error: any) {
+      alert(`Error: ${error.message}`)
       console.error('Registration error:', error)
     } finally {
       setIsLoading(false)
@@ -249,9 +254,13 @@ export default function DoctorSignupPage() {
                     <input type="email" id="email" required value={formData.email} onChange={handleChange} placeholder="doctor@hospital.com" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
-                    <input type="tel" id="phone" required value={formData.phone} onChange={handleChange} placeholder="+1 (555) 000-0000" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors" />
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Password *</label>
+                    <input type="password" id="password" required value={formData.password} onChange={handleChange} placeholder="••••••••" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors" />
                   </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
+                  <input type="tel" id="phone" required value={formData.phone} onChange={handleChange} placeholder="+1 (555) 000-0000" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors" />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>

@@ -22,6 +22,7 @@ export default function NGOSignupPage() {
     fcraRegistration: '',
     registeredOfficeAddress: '',
     email: '',
+    password: '',
     phone: '',
     websiteUrl: '',
     authorizedPersonName: '',
@@ -112,7 +113,7 @@ export default function NGOSignupPage() {
         return false
       }
     } else if (currentStep === 2) {
-      if (!formData.registeredOfficeAddress || !formData.email || !formData.phone) {
+      if (!formData.registeredOfficeAddress || !formData.email || !formData.password || !formData.phone) {
         alert('Please fill in all required contact information')
         return false
       }
@@ -157,37 +158,41 @@ export default function NGOSignupPage() {
     if (!canvas) return
     const signatureBase64 = canvas.toDataURL()
 
-    const submissionData = {
-      role: 'NGO',
-      ...formData,
-      signatureBase64,
-      status: 'pending',
-      registrationId: `NGO-${Date.now()}`,
-      registrationDate: new Date().toISOString()
-    }
-
     setIsLoading(true)
 
     try {
-      // Save registration data to localStorage
-      const existingRegistrations = localStorage.getItem('ngoRegistrations')
-      const registrations = existingRegistrations ? JSON.parse(existingRegistrations) : []
-      registrations.push(submissionData)
-      localStorage.setItem('ngoRegistrations', JSON.stringify(registrations))
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          role: 'NGO',
+          ...formData,
+          signatureBase64,
+          registrationId: `NGO-${Date.now()}`,
+          registrationDate: new Date().toISOString()
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Registration failed')
+      }
 
       // Set user session
       localStorage.setItem('isLoggedIn', 'true')
       localStorage.setItem('userEmail', formData.email)
       localStorage.setItem('selectedRole', 'NGO')
-      
-      alert(`✅ NGO Registration Submitted Successfully!\n\nRegistration ID: ${submissionData.registrationId}\nOrganization: ${formData.organizationName}\nEmail: ${formData.email}\nStatus: Pending Verification\n\nOur team will review your documents within 2-3 business days.\n\nRedirecting to your dashboard...`)
-      
+      localStorage.setItem('userName', formData.organizationName)
+
+      alert(`✅ NGO Registration Successful! Redirecting to your dashboard...`)
+
       setTimeout(() => {
         router.push('/dashboard/ngo')
       }, 500)
-      
-    } catch (error) {
-      alert('Error: Registration failed. Please try again.')
+
+    } catch (error: any) {
+      alert(`Error: ${error.message}`)
       console.error('Registration error:', error)
     } finally {
       setIsLoading(false)
@@ -305,9 +310,13 @@ export default function NGOSignupPage() {
                     <input type="email" id="email" required value={formData.email} onChange={handleChange} placeholder="contact@ngo.org" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none transition-colors" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
-                    <input type="tel" id="phone" required value={formData.phone} onChange={handleChange} placeholder="+1 (555) 000-0000" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none transition-colors" />
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Account Password *</label>
+                    <input type="password" id="password" required value={formData.password} onChange={handleChange} placeholder="••••••••" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none transition-colors" />
                   </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
+                  <input type="tel" id="phone" required value={formData.phone} onChange={handleChange} placeholder="+1 (555) 000-0000" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none transition-colors" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Website URL</label>
