@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 import OpenAI from "openai";
 import { verifyToken } from '@/lib/auth';
 import dbConnect from '@/lib/mongodb';
