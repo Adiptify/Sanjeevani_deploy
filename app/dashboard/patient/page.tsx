@@ -195,8 +195,8 @@ export default function PatientDashboard() {
           <button
             onClick={() => setActiveSection('dashboard')}
             className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all w-full text-left relative overflow-hidden group cursor-pointer ${activeSection === 'dashboard'
-                ? 'bg-teal-50 text-teal-600 shadow-sm'
-                : 'text-gray-600 hover:bg-gray-50'
+              ? 'bg-teal-50 text-teal-600 shadow-sm'
+              : 'text-gray-600 hover:bg-gray-50'
               }`}
           >
             {activeSection === 'dashboard' && (
@@ -210,8 +210,8 @@ export default function PatientDashboard() {
           <button
             onClick={() => setActiveSection('appointments')}
             className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all w-full text-left relative overflow-hidden group cursor-pointer ${activeSection === 'appointments'
-                ? 'bg-teal-50 text-teal-600 shadow-sm'
-                : 'text-gray-600 hover:bg-gray-50'
+              ? 'bg-teal-50 text-teal-600 shadow-sm'
+              : 'text-gray-600 hover:bg-gray-50'
               }`}
           >
             {activeSection === 'appointments' && (
@@ -225,8 +225,8 @@ export default function PatientDashboard() {
           <button
             onClick={() => setActiveSection('chatbot')}
             className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all w-full text-left relative overflow-hidden group cursor-pointer ${activeSection === 'chatbot'
-                ? 'bg-teal-50 text-teal-600 shadow-sm'
-                : 'text-gray-600 hover:bg-gray-50'
+              ? 'bg-teal-50 text-teal-600 shadow-sm'
+              : 'text-gray-600 hover:bg-gray-50'
               }`}
           >
             {activeSection === 'chatbot' && (
@@ -240,8 +240,8 @@ export default function PatientDashboard() {
           <button
             onClick={() => setActiveSection('medicine')}
             className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all w-full text-left relative overflow-hidden group cursor-pointer ${activeSection === 'medicine'
-                ? 'bg-teal-50 text-teal-600 shadow-sm'
-                : 'text-gray-600 hover:bg-gray-50'
+              ? 'bg-teal-50 text-teal-600 shadow-sm'
+              : 'text-gray-600 hover:bg-gray-50'
               }`}
           >
             {activeSection === 'medicine' && (
@@ -505,7 +505,7 @@ export default function PatientDashboard() {
                       <h4 className="font-bold text-gray-800">{doc.fullName}</h4>
                       <p className="text-xs text-teal-600 font-semibold mb-2">{doc.specialization}</p>
                       <p className="text-[10px] text-gray-500 mb-4 line-clamp-1">📍 {doc.clinicAddress || doc.city}</p>
-                      <button onClick={() => router.push(`/appointments/book?docId=${doc._id}`)} className="w-full py-2 bg-teal-600 text-white rounded-xl text-xs font-bold shadow-md hover:bg-teal-700 transition-colors">Book Appointment</button>
+                      <button onClick={() => router.push(`/appointments/book?doctor=${doc._id}`)} className="w-full py-2 bg-teal-600 text-white rounded-xl text-xs font-bold shadow-md hover:bg-teal-700 transition-colors">Book Appointment</button>
                     </div>
                   ))
                 )}

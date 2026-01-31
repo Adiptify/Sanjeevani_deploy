@@ -25,10 +25,42 @@ export async function GET(req: NextRequest) {
 
         const profile = await Submission.findOne({ email: user.email });
 
-        let extraData = {};
+        let extraData: any = {};
+
+        // Dynamic Health Data Initialization for Patients
         if (user.role === 'Patient') {
-            const health = await HealthData.findOne({ patientEmail: user.email });
-            extraData = { health };
+            let health = await HealthData.findOne({ patientEmail: user.email });
+            if (!health) {
+                // Initialize default health data based on profile conditions
+                const baseline = profile?.medicalConditions ? 65 : 85;
+                health = await HealthData.create({
+                    patientEmail: user.email,
+                    physicalHealth: baseline,
+                    mentalHealth: baseline + 5,
+                    overallWellness: baseline + 2,
+                    history: [{
+                        physicalHealth: baseline,
+                        mentalHealth: baseline + 5,
+                        overallWellness: baseline + 2
+                    }]
+                });
+            }
+            extraData.health = health;
+        }
+
+        // Global Stats for Ecosystem Visibility (NGO and Doctor)
+        if (user.role === 'Doctor' || user.role === 'NGO') {
+            const [totalPatients, totalDoctors, totalNGOs] = await Promise.all([
+                User.countDocuments({ role: 'Patient' }),
+                User.countDocuments({ role: 'Doctor' }),
+                User.countDocuments({ role: 'NGO' })
+            ]);
+            extraData.systemStats = {
+                totalPatients,
+                totalDoctors,
+                totalNGOs,
+                communityHealthScore: 78 // Aggregate this in a real simulation route
+            };
         }
 
         return NextResponse.json({
@@ -38,6 +70,7 @@ export async function GET(req: NextRequest) {
         });
 
     } catch (error: any) {
+        console.error('Error in /api/auth/me:', error);
         return NextResponse.json({ error: 'Failed to fetch user data' }, { status: 500 });
     }
 }

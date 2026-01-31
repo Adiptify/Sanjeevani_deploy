@@ -10,7 +10,9 @@ services:
         value: 18.17.0
       - key: MONGODB_URI
         sync: false
-      - key: OLLAMA_API_KEY
+      - key: OPENAI_API_KEY
         sync: false
-      - key: NEXT_PUBLIC_BASE_URL
+      - key: JWT_SECRET
+        sync: false
+      - key: NEXT_PUBLIC_APP_URL
         value: https://sanjeevni-ai.onrender.com

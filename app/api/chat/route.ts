@@ -1,52 +1,86 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Ollama } from 'ollama';
+import OpenAI from "openai";
+import { verifyToken } from '@/lib/auth';
+import dbConnect from '@/lib/mongodb';
+import User from '@/models/User';
+import Submission from '@/models/Submission';
+import HealthData from '@/models/HealthData';
 
-const OLLAMA_HOST = process.env.OLLAMA_HOST || 'https://ollama.com';
-const OLLAMA_API_KEY = process.env.OLLAMA_API_KEY;
-const OLLAMA_API_KEYS = process.env.OLLAMA_API_KEYS ? process.env.OLLAMA_API_KEYS.split(',') : [];
-
-// Function to get an API key (rotates if multiple are provided)
-function getApiKey() {
-    if (OLLAMA_API_KEYS.length > 0) {
-        // Simple random rotation
-        return OLLAMA_API_KEYS[Math.floor(Math.random() * OLLAMA_API_KEYS.length)].trim();
-    }
-    return OLLAMA_API_KEY;
-}
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+});
 
 export async function POST(req: NextRequest) {
     try {
-        const { messages, model = 'gpt-oss:120b' } = await req.json();
+        const body = await req.json();
+        const { messages, message } = body;
 
-        const apiKey = getApiKey();
+        const token = req.cookies.get('token')?.value;
+        let userContext = "You are Sanjeevni AI, a professional and empathetic healthcare assistant.";
 
-        if (!apiKey) {
+        if (token) {
+            try {
+                const decoded: any = verifyToken(token);
+                if (decoded) {
+                    await dbConnect();
+                    const [user, profile, health] = await Promise.all([
+                        User.findById(decoded.id),
+                        Submission.findOne({ email: decoded.email }),
+                        HealthData.findOne({ patientEmail: decoded.email })
+                    ]);
+
+                    if (user) {
+                        userContext += `\n\nUSER PROFILE:\nName: ${user.name}\nRole: ${user.role}`;
+                        if (profile?.medicalConditions) {
+                            userContext += `\nExisting Medical Conditions: ${profile.medicalConditions}`;
+                        }
+                        if (health) {
+                            userContext += `\nLatest Health Stats: Physical Health ${health.physicalHealth}/100, Mental Health ${health.mentalHealth}/100, Overall Wellness ${health.overallWellness}/100.`;
+                        }
+                        userContext += `\n\nINSTRUCTIONS:\n1. Address the user by name if appropriate.\n2. If the user mentions severe symptoms (e.g., chest pain, difficulty breathing, high fever), strongly recommend booking an appointment with one of our registered doctors via the platform.\n3. Refer the user to Sanjeevni-affiliated NGOs if they mention financial difficulties or need community support.`;
+                    }
+                }
+            } catch (err) {
+                console.error("Context fetch error:", err);
+            }
+        }
+
+        // Handle different possible input structures
+        let lastUserMessage = "";
+        if (messages && Array.isArray(messages) && messages.length > 0) {
+            lastUserMessage = messages[messages.length - 1].content || messages[messages.length - 1].text || "";
+        } else if (message) {
+            lastUserMessage = message;
+        }
+
+        if (!lastUserMessage) {
             return NextResponse.json(
-                { error: 'OLLAMA_API_KEY or OLLAMA_API_KEYS is not configured on the server.' },
-                { status: 500 }
+                { error: 'Message content is required.' },
+                { status: 400 }
             );
         }
 
-        const ollama = new Ollama({
-            host: OLLAMA_HOST,
-            headers: {
-                Authorization: `Bearer ${apiKey}`,
-            },
+        const response = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [
+                { role: "system", content: userContext },
+                { role: "user", content: lastUserMessage }
+            ],
         });
 
-        const response = await ollama.chat({
-            model: model,
-            messages: messages,
-            stream: false, // Set to false for simple JSON response
-        });
+        const outputText = response.choices[0].message.content || "";
 
         return NextResponse.json({
-            message: response.message,
-            response: response.message.content
+            message: {
+                role: 'assistant',
+                content: outputText
+            },
+            response: outputText,
+            reply: outputText
         });
 
     } catch (error: any) {
-        console.error('Ollama API Error:', error);
+        console.error('OpenAI API Error:', error);
         return NextResponse.json(
             { error: 'Failed to generate response from AI.', details: error.message },
             { status: 500 }

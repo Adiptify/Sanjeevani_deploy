@@ -81,13 +81,11 @@ function BookAppointmentContent() {
     fetchData();
   }, []);
 
-  const availableDates = [
-    '2026-01-21',
-    '2026-01-22',
-    '2026-01-23',
-    '2026-01-24',
-    '2026-01-25'
-  ];
+  const availableDates = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() + i + 1);
+    return d.toISOString().split('T')[0];
+  });
 
   const timeSlots = [
     '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM',

@@ -14,6 +14,7 @@ export default function DoctorDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [userData, setUserData] = useState<any>(null);
   const [appointments, setAppointments] = useState<any[]>([]);
+  const [simulationData, setSimulationData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -32,6 +33,12 @@ export default function DoctorDashboard() {
         if (apptRes.ok) {
           const appts = await apptRes.json();
           setAppointments(appts);
+        }
+
+        const simRes = await fetch('/api/simulation');
+        if (simRes.ok) {
+          const simData = await simRes.json();
+          setSimulationData(simData);
         }
       } catch (err) {
         console.error('Error:', err);
@@ -99,8 +106,8 @@ export default function DoctorDashboard() {
           <button
             onClick={() => setActiveSection('dashboard')}
             className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all w-full text-left ${activeSection === 'dashboard'
-                ? 'bg-teal-50 text-teal-600 border-l-4 border-teal-600 shadow-sm'
-                : 'text-gray-600 hover:bg-gray-50'
+              ? 'bg-teal-50 text-teal-600 border-l-4 border-teal-600 shadow-sm'
+              : 'text-gray-600 hover:bg-gray-50'
               }`}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -111,8 +118,8 @@ export default function DoctorDashboard() {
           <button
             onClick={() => setActiveSection('patients')}
             className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all w-full text-left ${activeSection === 'patients'
-                ? 'bg-teal-50 text-teal-600 border-l-4 border-teal-600 shadow-sm'
-                : 'text-gray-600 hover:bg-gray-50'
+              ? 'bg-teal-50 text-teal-600 border-l-4 border-teal-600 shadow-sm'
+              : 'text-gray-600 hover:bg-gray-50'
               }`}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -123,8 +130,8 @@ export default function DoctorDashboard() {
           <button
             onClick={() => setActiveSection('appointments')}
             className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all w-full text-left ${activeSection === 'appointments'
-                ? 'bg-teal-50 text-teal-600 border-l-4 border-teal-600 shadow-sm'
-                : 'text-gray-600 hover:bg-gray-50'
+              ? 'bg-teal-50 text-teal-600 border-l-4 border-teal-600 shadow-sm'
+              : 'text-gray-600 hover:bg-gray-50'
               }`}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -255,6 +262,53 @@ export default function DoctorDashboard() {
                 </div>
               </div>
             </div>
+
+            {/* Simulation & Trends Section */}
+            {simulationData && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+                <div className="backdrop-blur-xl bg-white bg-opacity-40 rounded-3xl p-8 shadow-xl border border-white border-opacity-50">
+                  <h3 className="text-2xl font-bold text-gray-800 mb-6" style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>
+                    Health Simulation Insights
+                  </h3>
+                  <div className="space-y-6">
+                    {simulationData.trends.map((trend: any, idx: number) => (
+                      <div key={idx} className="relative pt-1">
+                        <div className="flex mb-2 items-center justify-between">
+                          <div>
+                            <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-teal-600 bg-teal-200">
+                              {trend.week}
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-xs font-semibold inline-block text-teal-600">
+                              {trend.avgWellness}% Wellness
+                            </span>
+                          </div>
+                        </div>
+                        <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-teal-100">
+                          <div style={{ width: `${trend.avgWellness}%` }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-teal-500 transition-all duration-1000"></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="backdrop-blur-xl bg-white bg-opacity-40 rounded-3xl p-8 shadow-xl border border-white border-opacity-50">
+                  <h3 className="text-2xl font-bold text-gray-800 mb-6" style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>
+                    Regional Health Distribution
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    {simulationData.regions.map((region: any, idx: number) => (
+                      <div key={idx} className="bg-white bg-opacity-50 p-4 rounded-2xl border border-white shadow-sm">
+                        <p className="text-sm font-bold text-gray-500 uppercase">{region.name}</p>
+                        <p className="text-2xl font-bold text-teal-600">{region.healthScore}%</p>
+                        <p className="text-xs text-gray-400">{region.activeUsers} Active Patients</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Interactive Today's Schedule */}
             <div className="backdrop-blur-xl bg-white bg-opacity-40 rounded-3xl p-8 shadow-xl border border-white border-opacity-50">
