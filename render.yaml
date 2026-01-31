@@ -3,11 +3,15 @@ services:
     name: sanjeevni-ai
     env: node
     plan: free
-    buildCommand: npm install && npm run build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/
+    buildCommand: npm install && npm run build
     startCommand: node .next/standalone/server.js
     envVars:
       - key: NODE_VERSION
         value: 18.17.0
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
       - key: MONGODB_URI
         sync: false
       - key: OPENAI_API_KEY

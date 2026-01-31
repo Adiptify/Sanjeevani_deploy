@@ -23,13 +23,15 @@ When prompted, use the following settings for the best performance (Blueprint wi
 | **Environment** | `Node` |
 | **Region** | Select the one closest to your users (e.g., Singapore or US East) |
 | **Branch** | `main` (or your production branch) |
-| **Build Command** | `npm install && npm run build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/` |
+| **Build Command** | `npm install && npm run build` |
 | **Start Command** | `node .next/standalone/server.js` |
 | **Instance Type** | `Free` (or a higher tier if needed) |
 
 ### 3. Add Environment Variables
 Render needs the following keys from your `.env` file. Go to the **Environment** tab in your Render service and add:
 
+- `NODE_ENV`: `production` (Mandatory)
+- `PORT`: `10000` (Explicitly setting this helps avoid 502 errors)
 - `MONGODB_URI`: Your MongoDB connection string.
 - `JWT_SECRET`: A secure random string for tokens.
 - `OPENAI_API_KEY`: Your OpenAI API key.
