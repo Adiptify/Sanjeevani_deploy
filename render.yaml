@@ -3,8 +3,8 @@ services:
     name: sanjeevni-ai
     env: node
     plan: free
-    buildCommand: npm install && npm run build
-    startCommand: npm run start
+    buildCommand: npm ci && npm run build
+    startCommand: node .next/standalone/server.js
     envVars:
       - key: NODE_VERSION
         value: 18.17.0
