@@ -23,7 +23,7 @@ When prompted, use the following settings for the best performance (Blueprint wi
 | **Environment** | `Node` |
 | **Region** | Select the one closest to your users (e.g., Singapore or US East) |
 | **Branch** | `main` (or your production branch) |
-| **Build Command** | `npm ci && npm run build` |
+| **Build Command** | `npm install && npm run build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/` |
 | **Start Command** | `node .next/standalone/server.js` |
 | **Instance Type** | `Free` (or a higher tier if needed) |
 
