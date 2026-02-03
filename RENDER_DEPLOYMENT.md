@@ -35,6 +35,7 @@ Render needs the following keys from your `.env` file. Go to the **Environment**
 - `MONGODB_URI`: Your MongoDB connection string.
 - `JWT_SECRET`: A secure random string for tokens.
 - `OPENAI_API_KEY`: Your OpenAI API key.
+- `GROQ_API_KEY`: Your Groq API key.
 - `NEXT_PUBLIC_APP_URL`: Set this to your Render URL (e.g., `https://sanjeevni-ai.onrender.com`).
 
 ### 4. Advanced Settings (Optional but Recommended)

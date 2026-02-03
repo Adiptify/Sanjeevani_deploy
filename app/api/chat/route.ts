@@ -2,15 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-import OpenAI from "openai";
+import Groq from "groq-sdk";
 import { verifyToken } from '@/lib/auth';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 import Submission from '@/models/Submission';
 import HealthData from '@/models/HealthData';
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+const groq = new Groq({
+    apiKey: process.env.GROQ_API_KEY,
 });
 
 export async function POST(req: NextRequest) {
@@ -63,8 +63,8 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const response = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
+        const response = await groq.chat.completions.create({
+            model: "openai/gpt-oss-20b",
             messages: [
                 { role: "system", content: userContext },
                 { role: "user", content: lastUserMessage }
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
         });
 
     } catch (error: any) {
-        console.error('OpenAI API Error:', error);
+        console.error('Groq API Error:', error);
         return NextResponse.json(
             { error: 'Failed to generate response from AI.', details: error.message },
             { status: 500 }
