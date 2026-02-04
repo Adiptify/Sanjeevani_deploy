@@ -19,7 +19,14 @@ export async function POST(req: NextRequest) {
         const { messages, message } = body;
 
         const token = req.cookies.get('token')?.value;
-        let userContext = "You are Sanjeevni AI, a professional and empathetic healthcare assistant.";
+        let userContext = `You are Sanjeevni AI, a professional and empathetic healthcare assistant. 
+CORE RULES:
+1. FOCUS: Only answer questions related to physical and mental health, medicine, symptoms, and wellness. 
+2. OFF-TOPIC: If a user asks about non-healthcare topics (like machine learning, coding, history, etc.), politely decline and steer them back to health-related assistance.
+3. STRUCTURE: Use markdown tables for comparisons, schedules, or structured data. Use headers (###) and bold text for clarity.
+4. TONE: Professional, empathetic, and clear. Explain medical jargon in simple terms.
+5. STREAMING: Write in a natural, flow-based manner suitable for real-time streaming.
+6. DATA: If user profile or health stats are provided below, use them to personalize your advice.`;
 
         if (token) {
             try {
@@ -63,23 +70,33 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const response = await groq.chat.completions.create({
+        const stream = await groq.chat.completions.create({
             model: "openai/gpt-oss-20b",
             messages: [
                 { role: "system", content: userContext },
                 { role: "user", content: lastUserMessage }
             ],
+            stream: true,
         });
 
-        const outputText = response.choices[0].message.content || "";
-
-        return NextResponse.json({
-            message: {
-                role: 'assistant',
-                content: outputText
+        const encoder = new TextEncoder();
+        const readableStream = new ReadableStream({
+            async start(controller) {
+                for await (const chunk of stream) {
+                    const content = chunk.choices[0]?.delta?.content || "";
+                    if (content) {
+                        controller.enqueue(encoder.encode(content));
+                    }
+                }
+                controller.close();
             },
-            response: outputText,
-            reply: outputText
+        });
+
+        return new Response(readableStream, {
+            headers: {
+                'Content-Type': 'text/plain; charset=utf-8',
+                'Transfer-Encoding': 'chunked',
+            },
         });
 
     } catch (error: any) {

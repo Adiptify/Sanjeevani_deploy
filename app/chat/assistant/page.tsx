@@ -3,6 +3,9 @@
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+
 interface Message {
   id: string;
   text: string;
@@ -45,6 +48,16 @@ export default function AIHealthAssistantPage() {
   const simulateBotResponse = async (userMessage: string) => {
     setIsTyping(true);
 
+    const botMessageId = Date.now().toString();
+    const newBotMessage: Message = {
+      id: botMessageId,
+      text: '',
+      sender: 'bot',
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, newBotMessage]);
+
     try {
       const apiMessages = messages.map(m => ({
         role: m.sender === 'user' ? 'user' : 'assistant',
@@ -62,29 +75,37 @@ export default function AIHealthAssistantPage() {
         }),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to get AI response');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to get AI response');
       }
 
-      const botMessage: Message = {
-        id: Date.now().toString(),
-        text: data.message.content,
-        sender: 'bot',
-        timestamp: new Date()
-      };
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No reader found');
 
-      setMessages(prev => [...prev, botMessage]);
+      const decoder = new TextEncoder().decode(""); // Just initializing
+      let accumulatedText = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = new TextDecoder().decode(value);
+        accumulatedText += chunk;
+
+        setMessages(prev => prev.map(msg =>
+          msg.id === botMessageId ? { ...msg, text: accumulatedText } : msg
+        ));
+      }
+
     } catch (error: any) {
       console.error('Error fetching bot response:', error);
-      const errorMessage: Message = {
-        id: Date.now().toString(),
-        text: "I'm sorry, I'm having trouble connecting to my brain right now. Please try again later.",
-        sender: 'bot',
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages(prev => prev.map(msg =>
+        msg.id === botMessageId ? {
+          ...msg,
+          text: "I'm sorry, I'm having trouble connecting to my brain right now. Please try again later."
+        } : msg
+      ));
     } finally {
       setIsTyping(false);
     }
@@ -101,8 +122,9 @@ export default function AIHealthAssistantPage() {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = input;
     setInput('');
-    simulateBotResponse(input);
+    simulateBotResponse(currentInput);
   };
 
   const handleQuickAction = (action: string) => {
@@ -163,12 +185,32 @@ export default function AIHealthAssistantPage() {
                 )}
 
                 <div className={`${message.sender === 'user'
-                    ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-3xl rounded-tr-none'
-                    : 'bg-white text-gray-800 rounded-3xl rounded-tl-none shadow-lg'
-                  } px-6 py-4`}>
-                  <p className="whitespace-pre-line" style={{ fontStyle: message.sender === 'bot' ? 'italic' : 'normal' }}>
-                    {message.text}
-                  </p>
+                  ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-3xl rounded-tr-none'
+                  : 'bg-white text-gray-800 rounded-3xl rounded-tl-none shadow-lg'
+                  } px-6 py-4 overflow-hidden`}>
+                  <div className="prose prose-sm max-w-none prose-teal">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+                        table: ({ children }) => (
+                          <div className="overflow-x-auto my-4 rounded-xl border border-teal-100 shadow-sm">
+                            <table className="min-w-full divide-y divide-teal-100 italic-normal">
+                              {children}
+                            </table>
+                          </div>
+                        ),
+                        thead: ({ children }) => <thead className="bg-teal-50">{children}</thead>,
+                        th: ({ children }) => <th className="px-4 py-3 text-left text-xs font-bold text-teal-700 uppercase tracking-wider border-b border-teal-100">{children}</th>,
+                        td: ({ children }) => <td className="px-4 py-3 text-sm text-gray-600 border-b border-teal-50">{children}</td>,
+                        tr: ({ children }) => <tr className="hover:bg-teal-50/30 transition-colors last:border-0">{children}</tr>,
+                        ul: ({ children }) => <ul className="list-disc ml-4 mb-2">{children}</ul>,
+                        ol: ({ children }) => <ol className="list-decimal ml-4 mb-2">{children}</ol>,
+                      }}
+                    >
+                      {message.text}
+                    </ReactMarkdown>
+                  </div>
                   <p className="text-xs mt-2 opacity-60">
                     {message.timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                   </p>
@@ -253,8 +295,8 @@ export default function AIHealthAssistantPage() {
               onClick={handleSend}
               disabled={!input.trim()}
               className={`px-8 py-4 rounded-2xl font-semibold transition-all ${input.trim()
-                  ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white hover:shadow-lg transform hover:scale-105'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white hover:shadow-lg transform hover:scale-105'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
