@@ -83,14 +83,14 @@ export default function AIHealthAssistantPage() {
       const reader = response.body?.getReader();
       if (!reader) throw new Error('No reader found');
 
-      const decoder = new TextEncoder().decode(""); // Just initializing
+      const decoder = new TextDecoder();
       let accumulatedText = "";
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = new TextDecoder().decode(value);
+        const chunk = decoder.decode(value, { stream: true });
         accumulatedText += chunk;
 
         setMessages(prev => prev.map(msg =>
