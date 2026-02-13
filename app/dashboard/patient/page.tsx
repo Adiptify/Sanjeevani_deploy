@@ -149,30 +149,66 @@ export default function PatientDashboard() {
   };
 
   const handleSendMessage = async () => {
-    if (chatInput.trim()) {
-      const newUserMessage = { text: chatInput, sender: 'user' as const };
-      setChatMessages(prev => [...prev, newUserMessage]);
-      setChatInput('');
+    if (!chatInput.trim()) return;
 
-      try {
-        const response = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: chatInput })
+    const userMsgText = chatInput;
+    const newUserMessage: { text: string, sender: 'user' | 'bot' } = { text: userMsgText, sender: 'user' };
+
+    // Capture history before update
+    const history = chatMessages.map(m => ({
+      role: m.sender === 'user' ? 'user' : 'assistant',
+      content: m.text
+    }));
+
+    setChatMessages(prev => [...prev, newUserMessage]);
+    setChatInput('');
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userMsgText,
+          messages: history
+        })
+      });
+
+      if (!response.ok) throw new Error('API failed');
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No reader found');
+
+      const decoder = new TextDecoder();
+      let accumulatedText = '';
+
+      // Add placeholder for bot response
+      setChatMessages(prev => [...prev, { text: '', sender: 'bot' }]);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        accumulatedText += decoder.decode(value, { stream: true });
+
+        setChatMessages(prev => {
+          const newMsgs = [...prev];
+          if (newMsgs.length > 0 && newMsgs[newMsgs.length - 1].sender === 'bot') {
+            newMsgs[newMsgs.length - 1].text = accumulatedText;
+          }
+          return newMsgs;
         });
-
-        const data = await response.json();
-
-        setChatMessages(prev => [...prev, {
-          text: data.response || "I'm sorry, I'm having trouble connecting right now.",
-          sender: 'bot'
-        }]);
-      } catch (err) {
-        setChatMessages(prev => [...prev, {
-          text: "I encountered an error. Please check if the AI service is running.",
-          sender: 'bot'
-        }]);
       }
+    } catch (err) {
+      console.error('Chat error:', err);
+      setChatMessages(prev => {
+        const lastMsg = prev[prev.length - 1];
+        if (lastMsg?.sender === 'bot') {
+          const newMsgs = [...prev];
+          newMsgs[newMsgs.length - 1].text += (lastMsg.text ? '\n\n' : '') + "⚠️ Connection Issue. Please try again later.";
+          return newMsgs;
+        }
+        return [...prev, { text: "I encountered an error. Please try again later.", sender: 'bot' }];
+      });
     }
   };
 
@@ -598,6 +634,8 @@ export default function PatientDashboard() {
             </div>
             <div className="flex gap-2">
               <input
+                id="dashboard-chat-input"
+                name="dashboard-chat-input"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
@@ -616,6 +654,8 @@ export default function PatientDashboard() {
             <div className="bg-white/40 backdrop-blur-xl rounded-3xl p-8 border border-white/40 shadow-xl">
               <div className="relative mb-6">
                 <input
+                  id="medicine-search"
+                  name="medicine-search"
                   value={medicineQuery}
                   onChange={(e) => setMedicineQuery(e.target.value)}
                   className="w-full bg-white/60 border border-white/40 rounded-2xl px-6 py-5 focus:ring-2 focus:ring-emerald-500 outline-none text-lg shadow-inner"

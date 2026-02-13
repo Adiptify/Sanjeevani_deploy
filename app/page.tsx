@@ -33,15 +33,50 @@ export default function Home() {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMsg })
+        body: JSON.stringify({
+          message: userMsg,
+          messages: chatMessages.map(m => ({
+            role: m.sender === 'user' ? 'user' : 'assistant',
+            content: m.text
+          }))
+        })
       })
 
       if (!response.ok) throw new Error('API failed')
-      const data = await response.json()
 
-      setChatMessages(prev => [...prev, { sender: 'ai', text: data.reply }])
+      const reader = response.body?.getReader()
+      if (!reader) throw new Error('No reader found')
+
+      const decoder = new TextDecoder()
+      let accumulatedText = ''
+
+      // Add a placeholder message for the AI
+      setChatMessages(prev => [...prev, { sender: 'ai', text: '' }])
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        accumulatedText += decoder.decode(value, { stream: true })
+
+        setChatMessages(prev => {
+          const newMsgs = [...prev]
+          if (newMsgs.length > 0) {
+            newMsgs[newMsgs.length - 1].text = accumulatedText
+          }
+          return newMsgs
+        })
+      }
     } catch (err) {
-      setChatMessages(prev => [...prev, { sender: 'ai', text: "Sorry, I'm having trouble connecting right now. Please try again later." }])
+      setChatMessages(prev => {
+        const lastMsg = prev[prev.length - 1]
+        if (lastMsg?.sender === 'ai') {
+          const newMsgs = [...prev]
+          newMsgs[newMsgs.length - 1].text += (lastMsg.text ? '\n\n' : '') + "⚠️ Connection Issue. Please try again later."
+          return newMsgs
+        }
+        return [...prev, { sender: 'ai', text: "Sorry, I'm having trouble connecting right now. Please try again later." }]
+      })
     } finally {
       setIsTyping(false)
     }
@@ -363,6 +398,8 @@ export default function Home() {
 
             <div className="flex gap-2 p-2 bg-gray-50 rounded-2xl border border-gray-100">
               <input
+                id="ai-preview-input"
+                name="ai-preview-input"
                 type="text"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}

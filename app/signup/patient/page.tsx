@@ -273,20 +273,20 @@ export default function PatientSignupPage() {
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">First Name *</label>
-                  <input type="text" id="firstName" required value={formData.firstName} onChange={handleChange} placeholder="John" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-teal-500 focus:outline-none transition-colors" />
+                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">First Name *</label>
+                  <input type="text" id="firstName" name="firstName" required value={formData.firstName} onChange={handleChange} placeholder="John" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-teal-500 focus:outline-none transition-colors" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Last Name *</label>
-                  <input type="text" id="lastName" required value={formData.lastName} onChange={handleChange} placeholder="Doe" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-teal-500 focus:outline-none transition-colors" />
+                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">Last Name *</label>
+                  <input type="text" id="lastName" name="lastName" required value={formData.lastName} onChange={handleChange} placeholder="Doe" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-teal-500 focus:outline-none transition-colors" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
-                  <input type="email" id="email" required value={formData.email} onChange={handleChange} placeholder="john.doe@example.com" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-teal-500 focus:outline-none transition-colors" />
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
+                  <input type="email" id="email" name="email" required value={formData.email} onChange={handleChange} placeholder="john.doe@example.com" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-teal-500 focus:outline-none transition-colors" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Password *</label>
-                  <input type="password" id="password" required value={formData.password} onChange={handleChange} placeholder="••••••••" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-teal-500 focus:outline-none transition-colors" />
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">Password *</label>
+                  <input type="password" id="password" name="password" required value={formData.password} onChange={handleChange} placeholder="••••••••" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-teal-500 focus:outline-none transition-colors" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>

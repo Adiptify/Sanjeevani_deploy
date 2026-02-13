@@ -14,8 +14,17 @@ const groq = new Groq({
 });
 
 export async function POST(req: NextRequest) {
+    console.log("POST /api/chat - Request started");
     try {
-        const body = await req.json();
+        let body;
+        try {
+            body = await req.json();
+            console.log("Request body parsed successfully");
+        } catch (jsonErr) {
+            console.error("JSON Parse Error in request body:", jsonErr);
+            return NextResponse.json({ error: "Invalid JSON in request body" }, { status: 400 });
+        }
+
         const { messages, message } = body;
 
         const token = req.cookies.get('token')?.value;
@@ -29,10 +38,14 @@ CORE RULES:
 6. DATA: If user profile or health stats are provided below, use them to personalize your advice.`;
 
         if (token) {
+            console.log("Token found, fetching user context...");
             try {
                 const decoded: any = verifyToken(token);
                 if (decoded) {
+                    console.log("Token verified for user:", decoded.email);
+                    console.log("Connecting to DB...");
                     await dbConnect();
+                    console.log("DB Connected. Fetching data...");
                     const [user, profile, health] = await Promise.all([
                         User.findById(decoded.id),
                         Submission.findOne({ email: decoded.email }),
@@ -55,40 +68,74 @@ CORE RULES:
             }
         }
 
-        // Handle different possible input structures
-        let lastUserMessage = "";
-        if (messages && Array.isArray(messages) && messages.length > 0) {
-            lastUserMessage = messages[messages.length - 1].content || messages[messages.length - 1].text || "";
-        } else if (message) {
-            lastUserMessage = message;
+        console.log("Chat Request Received. Body keys:", Object.keys(body));
+
+        // Construct proper message history for Groq
+        const groqMessages = [
+            { role: "system", content: userContext }
+        ];
+
+        // Add history messages if they exist
+        if (messages && Array.isArray(messages)) {
+            messages.forEach((m: any, idx: number) => {
+                console.log(`History message ${idx}: role=${m.role}, contentLen=${m.content?.length}`);
+                if (m.role && m.content) {
+                    groqMessages.push({ role: m.role, content: m.content });
+                }
+            });
         }
 
-        if (!lastUserMessage) {
+        // Add the current latest message if it's not already at the end of history
+        const lastGroqMessage = groqMessages[groqMessages.length - 1];
+        if (message && (!lastGroqMessage || lastGroqMessage.content !== message)) {
+            console.log("Adding new user message to groqMessages");
+            groqMessages.push({ role: "user", content: message });
+        }
+
+        console.log("Final GROQ Messages count:", groqMessages.length);
+        console.log("GROQ Messages summary:", groqMessages.map(m => `[${m.role}]`).join(' -> '));
+
+        if (groqMessages.length === 1) { // Only system message present
             return NextResponse.json(
                 { error: 'Message content is required.' },
                 { status: 400 }
             );
         }
 
+        if (!process.env.GROQ_API_KEY) {
+            return NextResponse.json(
+                { error: 'Groq API key is missing. Please check your .env file.' },
+                { status: 500 }
+            );
+        }
+
+        console.log("Calling Groq completions...");
         const stream = await groq.chat.completions.create({
-            model: "openai/gpt-oss-20b",
-            messages: [
-                { role: "system", content: userContext },
-                { role: "user", content: lastUserMessage }
-            ],
+            model: "llama-3.3-70b-versatile",
+            messages: groqMessages as any,
             stream: true,
         });
+        console.log("Groq stream created successfully.");
 
         const encoder = new TextEncoder();
         const readableStream = new ReadableStream({
             async start(controller) {
-                for await (const chunk of stream) {
-                    const content = chunk.choices[0]?.delta?.content || "";
-                    if (content) {
-                        controller.enqueue(encoder.encode(content));
+                try {
+                    let chunkCount = 0;
+                    for await (const chunk of stream) {
+                        const content = chunk.choices[0]?.delta?.content || "";
+                        if (content) {
+                            chunkCount++;
+                            if (chunkCount === 1) console.log("First chunk sent!");
+                            controller.enqueue(encoder.encode(content));
+                        }
                     }
+                    console.log(`Stream closed. Total chunks sent: ${chunkCount}`);
+                    controller.close();
+                } catch (streamError: any) {
+                    console.error('Streaming error:', streamError);
+                    controller.error(streamError);
                 }
-                controller.close();
             },
         });
 
@@ -102,7 +149,7 @@ CORE RULES:
     } catch (error: any) {
         console.error('Groq API Error:', error);
         return NextResponse.json(
-            { error: 'Failed to generate response from AI.', details: error.message },
+            { error: error.message || 'Failed to generate response from AI.' },
             { status: 500 }
         );
     }
