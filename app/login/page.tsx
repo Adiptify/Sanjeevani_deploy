@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -11,6 +14,65 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+  const [showAIPreview, setShowAIPreview] = useState(false)
+  const [chatMessages, setChatMessages] = useState<any[]>([
+    { sender: 'ai', text: "Hello! I'm Sanjeevni AI. How can I help you today?" }
+  ])
+  const [chatInput, setChatInput] = useState('')
+  const [isTyping, setIsTyping] = useState(false)
+
+  const handleSendMessage = async () => {
+    if (!chatInput.trim()) return
+
+    const userMsg = chatInput
+    setChatInput('')
+    setChatMessages(prev => [...prev, { sender: 'user', text: userMsg }])
+    setIsTyping(true)
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userMsg,
+          messages: chatMessages.map(m => ({
+            role: m.sender === 'user' ? 'user' : 'assistant',
+            content: m.text
+          }))
+        })
+      })
+
+      if (!response.ok) throw new Error('API failed')
+
+      const reader = response.body?.getReader()
+      if (!reader) throw new Error('No reader found')
+
+      const decoder = new TextDecoder()
+      let accumulatedText = ''
+
+      setChatMessages(prev => [...prev, { sender: 'ai', text: '' }])
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        accumulatedText += decoder.decode(value, { stream: true })
+
+        setChatMessages(prev => {
+          const newMsgs = [...prev]
+          if (newMsgs.length > 0) {
+            newMsgs[newMsgs.length - 1].text = accumulatedText
+          }
+          return newMsgs
+        })
+      }
+    } catch (err) {
+      setChatMessages(prev => [...prev, { sender: 'ai', text: "⚠️ Connection Issue. Please try again later." }])
+    } finally {
+      setIsTyping(false)
+    }
+  }
+
 
   useEffect(() => {
     const savedRole = localStorage.getItem('selectedRole') || 'User'
@@ -169,6 +231,121 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
+
+      {/* AI Preview Assistant Button */}
+      <button
+        onClick={() => setShowAIPreview(true)}
+        className="fixed bottom-8 right-8 bg-teal-600 text-white p-4 rounded-full shadow-2xl hover:bg-teal-700 transform hover:scale-110 transition-all duration-300 z-40 group"
+      >
+        <svg className="w-6 h-6 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
+        </svg>
+      </button>
+
+      {/* AI Preview Panel */}
+      {showAIPreview && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm z-50 flex items-end justify-center p-4">
+          <div
+            className="bg-white rounded-t-3xl p-6 max-w-2xl w-full shadow-2xl flex flex-col"
+            style={{
+              animation: 'fadeInUp 0.4s ease-out',
+              maxHeight: '80vh'
+            }}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-cyan-600 flex items-center justify-center text-white">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Sanjeevni AI Support</h3>
+                  <p className="text-xs text-gray-500">Need help logging in?</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAIPreview(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto mb-4 space-y-4 px-2 custom-scrollbar">
+              {chatMessages.map((msg, idx) => (
+                <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} animate-fadeIn`}>
+                  <div className={`max-w-[85%] p-4 rounded-2xl shadow-sm text-sm ${msg.sender === 'user'
+                    ? 'bg-teal-600 text-white rounded-tr-none'
+                    : 'bg-teal-50 text-gray-800 border border-teal-100 rounded-tl-none'
+                    }`}>
+                    <div className="prose prose-sm max-w-none prose-teal leading-relaxed whitespace-pre-wrap">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          table: ({ children }) => (
+                            <div className="overflow-x-auto my-4 rounded-xl border border-teal-100 shadow-sm bg-white">
+                              <table className="min-w-full divide-y divide-teal-100 table-auto">
+                                {children}
+                              </table>
+                            </div>
+                          ),
+                          thead: ({ children }) => <thead className="bg-teal-50">{children}</thead>,
+                          th: ({ children }) => <th className="px-4 py-2 text-left text-xs font-bold text-teal-800 uppercase tracking-wider border-b border-teal-100">{children}</th>,
+                          td: ({ children }) => <td className="px-4 py-2 text-sm text-gray-700 border-b border-teal-50">{children}</td>,
+                          tr: ({ children }) => <tr className="hover:bg-teal-50/50 transition-colors">{children}</tr>,
+                          p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>
+                        }}
+                      >
+                        {msg.text}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {isTyping && (
+                <div className="flex justify-start animate-pulse">
+                  <div className="bg-gray-100 text-gray-400 p-3 rounded-2xl rounded-tl-none text-xs italic">
+                    AI is thinking...
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2 p-2 bg-gray-50 rounded-2xl border border-gray-100">
+              <input
+                id="ai-login-input"
+                name="ai-login-input"
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                placeholder="How can I help you today?"
+                className="flex-1 bg-transparent border-none focus:ring-0 text-sm px-2 py-3"
+              />
+              <button
+                onClick={handleSendMessage}
+                disabled={!chatInput.trim() || isTyping}
+                className="bg-teal-600 text-white w-10 h-10 rounded-xl flex items-center justify-center hover:bg-teal-700 transition-colors disabled:opacity-50"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
+
   )
 }

@@ -75,8 +75,8 @@ CORE RULES:
             { role: "system", content: userContext }
         ];
 
-        // Add history messages if they exist
-        if (messages && Array.isArray(messages)) {
+        // Add history messages ONLY if user is authenticated (token exists)
+        if (token && messages && Array.isArray(messages)) {
             messages.forEach((m: any, idx: number) => {
                 console.log(`History message ${idx}: role=${m.role}, contentLen=${m.content?.length}`);
                 if (m.role && m.content) {
@@ -84,6 +84,7 @@ CORE RULES:
                 }
             });
         }
+
 
         // Add the current latest message if it's not already at the end of history
         const lastGroqMessage = groqMessages[groqMessages.length - 1];

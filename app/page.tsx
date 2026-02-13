@@ -4,6 +4,9 @@ import Link from 'next/link'
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+
 
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
 
@@ -383,7 +386,30 @@ export default function Home() {
                     ? 'bg-teal-600 text-white rounded-tr-none'
                     : 'bg-teal-50 text-gray-800 border border-teal-100 rounded-tl-none'
                     }`}>
-                    {msg.text}
+                    <div className="prose prose-sm max-w-none prose-teal leading-relaxed whitespace-pre-wrap">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          table: ({ children }) => (
+                            <div className="overflow-x-auto my-4 rounded-xl border border-teal-100 shadow-sm bg-white">
+                              <table className="min-w-full divide-y divide-teal-100 table-auto">
+                                {children}
+                              </table>
+                            </div>
+                          ),
+                          thead: ({ children }) => <thead className="bg-teal-50">{children}</thead>,
+                          th: ({ children }) => <th className="px-4 py-2 text-left text-xs font-bold text-teal-800 uppercase tracking-wider border-b border-teal-100">{children}</th>,
+                          td: ({ children }) => <td className="px-4 py-2 text-sm text-gray-700 border-b border-teal-50">{children}</td>,
+                          tr: ({ children }) => <tr className="hover:bg-teal-50/50 transition-colors">{children}</tr>,
+                          ul: ({ children }) => <ul className="list-disc ml-4 space-y-1 mb-2">{children}</ul>,
+                          ol: ({ children }) => <ol className="list-decimal ml-4 space-y-1 mb-2">{children}</ol>,
+                          p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>
+                        }}
+                      >
+                        {msg.text}
+                      </ReactMarkdown>
+                    </div>
+
                   </div>
                 </div>
               ))}
