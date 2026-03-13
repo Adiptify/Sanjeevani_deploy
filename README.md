@@ -152,7 +152,6 @@ Navigate to: **http://localhost:8080**
   "file": "sig_1234567890.png"
 }
 ```
-
 ### Data Storage
 
 Signatures saved in `backend/signatures/`:
